@@ -8,69 +8,70 @@ our $VERSION = '0.01';
 
 sub import {
     my $class = shift;
-    for my $entry ( @_ ) {
-        if ( ref $entry eq 'HASH' ) {
-            $class->test_environments( $entry );
-        }
-        else {
-            $class->has_environments( $entry );
-        }
+    my $caller = caller(0);
+
+    # export methods
+    {
+        no strict 'refs';
+        *{"$caller\::test_environments"} = \&test_environments;
+    }
+
+    if ( @_ > 0 ) {
+        test_environments(@_);
     }
 }
 
 sub test_environments {
-    my ( $class, $entry ) = @_;
+    my @entries = @_;
 
-    for my $env_name ( keys %$entry ) {
-        unless ( exists $ENV{$env_name} ) {
-            $class->skip_all( sprintf('%s environment is not existed', $env_name) );
+    my $skip_all = sub {
+        my $builder = __PACKAGE__->builder;
+
+        if ( not defined $builder->has_plan ) {
+            $builder->skip_all(@_);
         }
-
-        if ( ref $entry->{$env_name} eq 'Regexp' ) {
-            my $regex = $entry->{$env_name};
-            $ENV{$env_name} =~ m#$regex#
-                or $class->skip_all( sprintf('%s environment is not match by the pattern (pattern: %s)', $env_name, "$regex") );
+        elsif ( $builder->has_plan eq 'no_plan' ) {
+            $builder->skip(@_);
+            if ( $builder->can('parent') && $builder->parent ) {
+                die bless {} => 'Test::Builder::Exception';
+            }
+            exit 0;
         }
         else {
-            ( $ENV{$env_name} eq $entry->{$env_name} )
-                or $class->skip_all( sprintf("%s environment is not equals %s", $env_name, $entry->{$env_name}) );
+            for ( 1 .. $builder->has_plan ) {
+                $builder->skip(@_);
+            }
+            if ( $builder->can('parent') && $builder->parent ) {
+                die bless {} => 'Test::Builder::Exception';
+            }
+            exit 0;
+        }
+    };
+
+    for my $entry ( @entries ) {
+        if ( ref $entry eq 'HASH' ) {
+            for my $env_name ( keys %$entry ) {
+                unless ( exists $ENV{$env_name} ) {
+                    $skip_all->( sprintf('%s environment is not existed', $env_name) );
+                }
+
+                if ( ref $entry->{$env_name} eq 'Regexp' ) {
+                    my $regex = $entry->{$env_name};
+                    $ENV{$env_name} =~ m#$regex#
+                        or $skip_all->( sprintf('%s environment is not match by the pattern (pattern: %s)', $env_name, "$regex") );
+                }
+                else {
+                    ( $ENV{$env_name} eq $entry->{$env_name} )
+                        or $skip_all->( sprintf("%s environment is not equals %s", $env_name, $entry->{$env_name}) );
+                }
+            }
+        }
+        else {
+            unless ( exists $ENV{$entry} ) {
+                $skip_all->( sprintf('%s environment is not existed', $entry) );
+            }
         }
     }
-}
-
-sub has_environments {
-    my ( $class, $env_name ) = @_;
-    unless ( exists $ENV{$env_name} ) {
-        $class->skip_all( sprintf('%s environment is not existed', $env_name) );
-    }
-}
-
-sub skip_all {
-    my ( $class, $message ) = @_;
-
-    (sub {
-         my $builder = __PACKAGE__->builder;
-
-         if ( not defined $builder->has_plan ) {
-             $builder->skip_all(@_);
-         }
-         elsif ( $builder->has_plan eq 'no_plan' ) {
-             $builder->skip(@_);
-             if ( $builder->can('parent') && $builder->parent ) {
-                 die bless {} => 'Test::Builder::Exception';
-             }
-             exit 0;
-         }
-         else {
-             for ( 1 .. $builder->has_plan ) {
-                 $builder->skip(@_);
-             }
-             if ( $builder->can('parent') && $builder->parent ) {
-                 die bless {} => 'Test::Builder::Exception';
-             }
-             exit 0;
-         }
-     })->( $message );
 }
 
 1;
@@ -84,9 +85,38 @@ Test::Requires::Env -
 
   use Test::Requires::Env;
 
+  test_requires(
+    'HOME',
+    'PATH',
+    +{
+      'SHELL'   => '/bin/bash',
+      'INCLUDE' => qr{/usr/local/include},
+      'LIB'     => qr{/usr/local/lib},
+    },
+  );
+
 =head1 DESCRIPTION
 
-Test::Requires::Env is
+Test::Requires::Env is testing environments and skipping by condition of the testing.
+This module exports 'test_environments()' sub routine.
+
+The sub routine accepts two type arguments. One of them is array of environment names, it is used to check existing such a environment.
+Other one is hash reference of environment conditions, it is used to check environment value by equals or regexp.
+
+And this module provides short cut of test_environments() sub routine by import method looks like synopsis.
+
+=head1 FUNCTIONS
+
+=head2 test_environments( @entries )
+
+@entries items should be scalar or hash reference. The scalar is treated as environment name,
+and check which the specified environment is existing or not in environments.
+
+The hash reference is consisted of environment name is key, environment value condition is value.
+The environment value condition accepts scalar and regexp.
+
+The condition scalar is used by which the scalar equals actual environment value or not.
+The condition regexp is used by matching to actual environment value.
 
 =head1 AUTHOR
 
