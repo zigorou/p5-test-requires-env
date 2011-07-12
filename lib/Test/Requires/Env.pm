@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use parent qw(Test::Builder::Module);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 sub import {
     my $class = shift;
@@ -79,13 +79,16 @@ __END__
 
 =head1 NAME
 
-Test::Requires::Env -
+Test::Requires::Env - Testing environments and skipping by result of the testing
 
 =head1 SYNOPSIS
 
+  use Test::More;
   use Test::Requires::Env;
 
-  test_requires(
+  $ENV{SHELL} = '/bin/zsh';
+
+  test_environments(
     'HOME',
     'PATH',
     +{
@@ -95,9 +98,11 @@ Test::Requires::Env -
     },
   );
 
+  fail 'Do not reach here';
+
 =head1 DESCRIPTION
 
-Test::Requires::Env is testing environments and skipping by condition of the testing.
+Test::Requires::Env is testing environments and skipping by result of the testing.
 This module exports 'test_environments()' sub routine.
 
 The sub routine accepts two type arguments. One of them is array of environment names, it is used to check existing such a environment.
@@ -123,6 +128,16 @@ The condition regexp is used by matching to actual environment value.
 Toru Yamaguchi E<lt>zigorou@cpan.orgE<gt>
 
 =head1 SEE ALSO
+
+=over
+
+=item L<Test::Requires>
+
+This module is expired L<Test::Requires>.
+
+=item L<Test::Skip::UnlessExistsExecutable>
+
+=back
 
 =head1 LICENSE
 
