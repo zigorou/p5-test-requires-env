@@ -52,23 +52,23 @@ sub test_environments {
         if ( ref $entry eq 'HASH' ) {
             for my $env_name ( keys %$entry ) {
                 unless ( exists $ENV{$env_name} ) {
-                    $skip_all->( sprintf('%s environment is not existed', $env_name) );
+                    $skip_all->( sprintf('%s environment variable does not exist', $env_name) );
                 }
 
                 if ( ref $entry->{$env_name} eq 'Regexp' ) {
                     my $regex = $entry->{$env_name};
                     $ENV{$env_name} =~ m#$regex#
-                        or $skip_all->( sprintf('%s environment is not match by the pattern (pattern: %s)', $env_name, "$regex") );
+                        or $skip_all->( sprintf('%s environment variable does not match by the pattern (pattern: %s)', $env_name, "$regex") );
                 }
                 else {
                     ( $ENV{$env_name} eq $entry->{$env_name} )
-                        or $skip_all->( sprintf("%s environment is not equals %s", $env_name, $entry->{$env_name}) );
+                        or $skip_all->( sprintf("%s environment variable does not equals %s", $env_name, $entry->{$env_name}) );
                 }
             }
         }
         else {
             unless ( exists $ENV{$entry} ) {
-                $skip_all->( sprintf('%s environment is not existed', $entry) );
+                $skip_all->( sprintf('%s environment does not exist', $entry) );
             }
         }
     }
