@@ -5,6 +5,8 @@ all_from 'lib/Test/Requires/Env.pm';
 
 requires 'parent';
 requires 'Test::Builder::Module';
+requires 'Module::Install::AuthorTests';
+requires 'Module::Install::Repository';
 
 tests 't/*.t';
 author_tests 'xt';
